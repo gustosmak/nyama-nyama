@@ -20,5 +20,7 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+
+        findViewById(R.id.exit_button).setOnClickListener(v -> finishAffinity());
     }
 }

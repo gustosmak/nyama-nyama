@@ -1,9 +1,21 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.NyamaNyama" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+<resources>
+    <style name="Base.Theme.NyamaNyama" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/nyama_orange</item>
+        <item name="colorPrimaryContainer">@color/nyama_orange_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/nyama_orange</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="colorSurface">@color/nyama_gray</item>
+        <item name="colorOnSurface">@color/white</item>
+        <item name="android:colorBackground">@color/nyama_gray</item>
+        <item name="android:windowBackground">@color/nyama_gray</item>
     </style>
 
     <style name="Theme.NyamaNyama" parent="Base.Theme.NyamaNyama" />
+
+    <style name="Theme.NyamaNyama.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/nyama_gray</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="postSplashScreenTheme">@style/Theme.NyamaNyama</item>
+    </style>
 </resources>

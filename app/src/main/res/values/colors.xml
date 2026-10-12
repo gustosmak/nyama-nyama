@@ -2,4 +2,10 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <color name="nyama_gray">#232323</color>
+    <color name="nyama_gray_light">#313031</color>
+    <color name="nyama_orange">#FFFF8A3D</color>
+    <color name="nyama_orange_dark">#FFE06B1F</color>
+    <color name="nyama_text_secondary">#FFD6D8DB</color>
 </resources>
