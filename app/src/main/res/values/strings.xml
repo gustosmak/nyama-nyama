@@ -1,6 +1,17 @@
 <resources>
     <string name="app_name">Nyama-Nyama</string>
-    <string name="splash_title">Nyama-Nyama</string>
-    <string name="welcome_text">Добро пожаловать в Няму</string>
-    <string name="exit_button">Выйти</string>
+    <string name="splash_line_1">NyamA</string>
+    <string name="splash_line_2">NyamA</string>
+    <string name="main_title_line_1">NyamA</string>
+    <string name="main_title_line_2">NyamA</string>
+    <string name="login_button">Вход</string>
+    <string name="register_button">Регистрация</string>
+    <string name="leave_button">Покинуть</string>
+    <string name="login_title">Вход</string>
+    <string name="register_title">Регистрация</string>
+    <string name="hint_login">Логин</string>
+    <string name="hint_password">Пароль</string>
+    <string name="hint_password_confirm">Повтор пароля</string>
+    <string name="action_login">Войти</string>
+    <string name="action_register">Зарегистрироваться</string>
 </resources>
