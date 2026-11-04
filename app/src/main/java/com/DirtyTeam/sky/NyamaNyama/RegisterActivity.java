@@ -1,6 +1,7 @@
 package com.DirtyTeam.sky.NyamaNyama;
 
 import android.os.Bundle;
+import android.widget.Button;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -27,8 +28,11 @@ public class RegisterActivity extends AppCompatActivity {
             return insets;
         });
 
+        Button actionRegister = findViewById(R.id.action_register);
+        AppFonts.applyOpenSansBold(actionRegister);
+
         // Fields are UI stubs only — values are not read yet.
-        findViewById(R.id.action_register).setOnClickListener(v -> {
+        actionRegister.setOnClickListener(v -> {
             UserPrefs.setRegistered(this, true);
             finish();
         });

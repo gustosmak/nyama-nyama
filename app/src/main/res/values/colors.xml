@@ -5,6 +5,7 @@
 
     <color name="nyama_gray">#FF1A1816</color>
     <color name="nyama_gray_light">#FF2A2724</color>
+    <color name="nyama_title">#FFEADBC4</color>
     <color name="nyama_orange">#FFF1B467</color>
     <color name="nyama_orange_dark">#FFE09A4A</color>
     <color name="nyama_text_secondary">#FFD6D8DB</color>
