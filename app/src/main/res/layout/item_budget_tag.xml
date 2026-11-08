@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="8dp"
+    android:paddingTop="6dp"
+    android:paddingEnd="12dp"
+    android:paddingBottom="6dp">
+
+    <androidx.appcompat.widget.AppCompatCheckBox
+        android:id="@+id/tag_check"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:padding="0dp" />
+
+    <TextView
+        android:id="@+id/tag_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="6dp"
+        android:textColor="@color/white"
+        android:textSize="14sp" />
+
+</LinearLayout>

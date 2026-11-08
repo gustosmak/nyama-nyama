@@ -101,7 +101,11 @@ public class HomeActivity extends AppCompatActivity {
         });
         findViewById(R.id.about_button).setOnClickListener(v -> showAboutDialog());
 
+        findViewById(R.id.profile_button).setOnClickListener(v ->
+                startActivity(new android.content.Intent(this, ProfileActivity.class)));
         Button wantButton = findViewById(R.id.want_button);
+        wantButton.setOnClickListener(v ->
+                startActivity(new android.content.Intent(this, BudgetActivity.class)));
         Button recommendationsButton = findViewById(R.id.recommendations_button);
         AppFonts.applyMontserratBold(wantButton, recommendationsButton);
 

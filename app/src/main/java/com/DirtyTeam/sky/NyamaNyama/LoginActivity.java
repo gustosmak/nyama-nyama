@@ -52,6 +52,7 @@ public class LoginActivity extends AppCompatActivity {
                 showEmptyWarning(actionLogin);
                 return;
             }
+            UserPrefs.saveAccount(this, login, password);
             startActivity(new Intent(this, HomeActivity.class));
             finish();
         });

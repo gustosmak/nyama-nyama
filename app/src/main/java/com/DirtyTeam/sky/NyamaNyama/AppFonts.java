@@ -36,6 +36,22 @@ final class AppFonts {
         return montserrat != null ? montserrat : Typeface.DEFAULT_BOLD;
     }
 
+    static Typeface montserratRegular(Context context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Typeface regular = buildVariation(
+                    context,
+                    R.font.montserrat_variable,
+                    "montserrat_variable.ttf",
+                    "'wght' 400"
+            );
+            if (regular != null) {
+                return regular;
+            }
+        }
+        Typeface montserrat = ResourcesCompat.getFont(context, R.font.montserrat_variable);
+        return montserrat != null ? montserrat : Typeface.DEFAULT;
+    }
+
     static void applyMontserratBold(TextView... views) {
         applyVariation(
                 views,

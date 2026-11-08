@@ -63,6 +63,7 @@ public class RegisterActivity extends AppCompatActivity {
                 return;
             }
             UserPrefs.setRegistered(this, true);
+            UserPrefs.saveAccount(this, textOf(emailEdit), textOf(passwordEdit));
             startActivity(new Intent(this, HomeActivity.class));
             finish();
         });
