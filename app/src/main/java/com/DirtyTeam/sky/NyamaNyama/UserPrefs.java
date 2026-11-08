@@ -110,4 +110,35 @@ public final class UserPrefs {
         }
         prefs(context).edit().putString(KEY_DESIRE, object.toString()).apply();
     }
+
+    public static DesireSelection getDesireSelection(Context context) {
+        List<BudgetCategory> frames = new ArrayList<>();
+        String raw = prefs(context).getString(KEY_DESIRE, "");
+        if (raw == null || raw.isEmpty()) {
+            return new DesireSelection(0, "", frames, "");
+        }
+        try {
+            JSONObject object = new JSONObject(raw);
+            JSONArray array = object.optJSONArray("frames");
+            if (array != null) {
+                for (int i = 0; i < array.length(); i++) {
+                    JSONObject frame = array.getJSONObject(i);
+                    frames.add(new BudgetCategory(
+                            frame.optString("name"),
+                            frame.optInt("amount"),
+                            frame.optInt("color", 0xFFF1B467),
+                            frame.optBoolean("custom")
+                    ));
+                }
+            }
+            return new DesireSelection(
+                    object.optInt("hunger"),
+                    object.optString("phrase"),
+                    frames,
+                    object.optString("comment")
+            );
+        } catch (JSONException ignored) {
+            return new DesireSelection(0, "", frames, "");
+        }
+    }
 }

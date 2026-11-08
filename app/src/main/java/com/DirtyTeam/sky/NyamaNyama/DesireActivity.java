@@ -116,6 +116,7 @@ public class DesireActivity extends AppCompatActivity {
                     selectedFrames(),
                     comment.getText() == null ? "" : comment.getText().toString().trim()
             ));
+            startActivity(new Intent(this, OffersActivity.class));
         });
 
         commentLayout = findViewById(R.id.desire_comment_input);
