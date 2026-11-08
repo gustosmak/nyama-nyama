@@ -6,20 +6,22 @@ from typing import List, Dict, Any
 mcp = FastMCP("FoodAI-Location")
 
 TWOGIS_API_KEY = os.getenv("TWO_GIS_API_KEY")
+# ✅ Возвращаемся на /3.0/items — этот сервис точно включён в твоём ключе
 TWOGIS_PLACES_URL = "https://catalog.api.2gis.com/3.0/items"
 
 @mcp.tool()
 async def find_restaurants(latitude: float, longitude: float, budget: int) -> List[Dict[str, Any]]:
     """
-    Находит рестораны и кафе в радиусе 1000 метров.
+    Находит рестораны и кафе в радиусе 1000 метров, сортируя их по расстоянию.
     """
     point = f"{longitude},{latitude}"
     
-    # Упростили запрос: ищем просто "ресторан" и "кафе"
     params = {
-        "q": "ресторан кафе", 
-        "point": point,
-        "radius": 1000, 
+        "q": "ресторан кафе",
+        "point": point,          # точка, вокруг которой ищем
+        "radius": 1000,
+        "location": point,       # точка, от которой считается расстояние для сортировки
+        "sort": "distance",      # 👈 сортировка по возрастанию расстояния
         "key": TWOGIS_API_KEY,
         "fields": "items.point,items.address_name,items.rubrics",
         "page_size": 10
@@ -29,11 +31,7 @@ async def find_restaurants(latitude: float, longitude: float, budget: int) -> Li
         async with httpx.AsyncClient() as client:
             response = await client.get(TWOGIS_PLACES_URL, params=params, timeout=10.0)
             data = response.json()
-            
-            # 🚨 ОТЛАДКА: Выводим ответ в логи FastMCP Cloud
-            print(f"ОТВЕТ ОТ 2GIS: {data}") 
-            
-            # Проверяем статус ответа от 2GIS
+
             if data.get("meta", {}).get("code") != 200:
                 error_msg = data.get("meta", {}).get("error", {}).get("message", "Неизвестная ошибка 2GIS")
                 return [{"status": "error", "message": f"2GIS API вернул ошибку: {error_msg}"}]
@@ -42,7 +40,7 @@ async def find_restaurants(latitude: float, longitude: float, budget: int) -> Li
         return [{"status": "error", "message": f"Ошибка сети: {e}"}]
 
     if "result" not in data or "items" not in data["result"]:
-        return [{"status": "error", "message": "2GIS вернул пустой список. Возможно, превышен лимит запросов."}]
+        return [{"status": "error", "message": "2GIS вернул пустой список."}]
 
     restaurants = []
     for item in data["result"]["items"]:
@@ -67,7 +65,7 @@ async def find_restaurants(latitude: float, longitude: float, budget: int) -> Li
 
     return restaurants
 
-# Функция get_route остается без изменений...
+# Функция get_route остаётся без изменений...
 @mcp.tool()
 async def get_route(start_lat: float, start_lon: float, end_lat: float, end_lon: float, mode: str = "driving") -> Dict[str, Any]:
     url = f"http://router.project-osrm.org/route/v1/{mode}/{start_lon},{start_lat};{end_lon},{end_lat}?overview=false"
