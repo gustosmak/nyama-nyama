@@ -2,11 +2,19 @@ package com.DirtyTeam.sky.NyamaNyama;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.location.LocationRequest;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.os.Build;
 import android.os.Bundle;
+import android.view.ViewGroup;
+import android.view.Window;
 import android.widget.Button;
 
 import androidx.activity.EdgeToEdge;
@@ -14,6 +22,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.AppCompatButton;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.GravityCompat;
@@ -61,10 +70,11 @@ public class HomeActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Configuration.getInstance().setUserAgentValue(getPackageName());
-        Configuration.getInstance().load(
-                getApplicationContext(),
-                android.preference.PreferenceManager.getDefaultSharedPreferences(getApplicationContext())
+        SharedPreferences osmdroidPreferences = getApplicationContext().getSharedPreferences(
+                getPackageName() + "_preferences",
+                Context.MODE_PRIVATE
         );
+        Configuration.getInstance().load(getApplicationContext(), osmdroidPreferences);
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_home);
@@ -73,6 +83,11 @@ public class HomeActivity extends AppCompatActivity {
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.home_content), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            return insets;
+        });
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.agents_drawer), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(v.getPaddingLeft(), v.getPaddingTop(), v.getPaddingRight(), systemBars.bottom);
             return insets;
         });
 
@@ -84,10 +99,11 @@ public class HomeActivity extends AppCompatActivity {
             drawerLayout.closeDrawer(GravityCompat.START);
             return true;
         });
+        findViewById(R.id.about_button).setOnClickListener(v -> showAboutDialog());
 
         Button wantButton = findViewById(R.id.want_button);
         Button recommendationsButton = findViewById(R.id.recommendations_button);
-        AppFonts.applyOpenSansBold(wantButton, recommendationsButton);
+        AppFonts.applyMontserratBold(wantButton, recommendationsButton);
 
         mapView = findViewById(R.id.map);
         mapView.setTileSource(TileSourceFactory.MAPNIK);
@@ -104,6 +120,20 @@ public class HomeActivity extends AppCompatActivity {
                     Manifest.permission.ACCESS_COARSE_LOCATION
             });
         }
+    }
+
+    private void showAboutDialog() {
+        android.app.Dialog dialog = new android.app.Dialog(this);
+        dialog.setContentView(R.layout.dialog_about);
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
+        AppCompatButton okButton = dialog.findViewById(R.id.about_ok);
+        AppFonts.applyMontserratBold(okButton);
+        okButton.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
     }
 
     private boolean hasLocationPermission() {
@@ -155,6 +185,19 @@ public class HomeActivity extends AppCompatActivity {
         if (!providerEnabled(provider)) {
             return;
         }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            LocationRequest request = new LocationRequest.Builder(2000L)
+                    .setMinUpdateDistanceMeters(5f)
+                    .build();
+            locationManager.requestLocationUpdates(provider, request, getMainExecutor(), locationListener);
+            return;
+        }
+        requestLegacyUpdates(provider);
+    }
+
+    @SuppressWarnings("deprecation")
+    @SuppressLint("MissingPermission")
+    private void requestLegacyUpdates(String provider) {
         locationManager.requestLocationUpdates(provider, 2000L, 5f, locationListener);
     }
 

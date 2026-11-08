@@ -39,7 +39,7 @@ public class LoginActivity extends AppCompatActivity {
         TextInputEditText loginEdit = findViewById(R.id.login_edit);
         TextInputEditText passwordEdit = findViewById(R.id.password_edit);
         Button actionLogin = findViewById(R.id.action_login);
-        AppFonts.applyOpenSansBold(actionLogin);
+        AppFonts.applyMontserratBold(actionLogin);
 
         actionLogin.setOnClickListener(v -> {
             String login = textOf(loginEdit);

@@ -110,14 +110,40 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <com.google.android.material.navigation.NavigationView
-        android:id="@+id/nav_agents"
-        android:layout_width="280dp"
+    <LinearLayout
+        android:id="@+id/agents_drawer"
+        android:layout_width="300dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
         android:background="@color/nyama_gray"
-        app:headerLayout="@layout/nav_header_agents"
-        app:itemTextColor="@color/white"
-        app:menu="@menu/menu_agents" />
+        android:orientation="vertical">
+
+        <include layout="@layout/nav_header_agents" />
+
+        <com.google.android.material.navigation.NavigationView
+            android:id="@+id/nav_agents"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="@color/nyama_gray"
+            app:elevation="0dp"
+            app:itemTextColor="@color/white"
+            app:menu="@menu/menu_agents" />
+
+        <ImageButton
+            android:id="@+id/about_button"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="start"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/bg_icon_button"
+            android:contentDescription="@string/cd_about"
+            android:padding="12dp"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_info" />
+
+    </LinearLayout>
 
 </androidx.drawerlayout.widget.DrawerLayout>
