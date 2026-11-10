@@ -40,12 +40,21 @@ public final class DishStyle {
     }
 
     public static BudgetCategory segment(int price, List<BudgetCategory> categories) {
+        List<BudgetCategory> matched = segments(price, categories);
+        return matched.get(0);
+    }
+
+    public static List<BudgetCategory> segments(int price, List<BudgetCategory> categories) {
+        List<BudgetCategory> matched = new ArrayList<>();
         for (BudgetCategory category : categories) {
             if (price <= category.amount + 100) {
-                return category;
+                matched.add(category);
             }
         }
-        return categories.get(categories.size() - 1);
+        if (matched.isEmpty() && !categories.isEmpty()) {
+            matched.add(categories.get(categories.size() - 1));
+        }
+        return matched;
     }
 
     public static boolean same(BudgetCategory left, BudgetCategory right) {

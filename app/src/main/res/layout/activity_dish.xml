@@ -141,25 +141,40 @@
                 android:textSize="16sp" />
 
             <TextView
-                android:id="@+id/dish_segment_label"
-                android:layout_width="wrap_content"
+                android:id="@+id/dish_segments_label"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="@string/dish_segment"
+                android:text="@string/dish_price_segments"
                 android:textColor="@color/nyama_text_muted"
-                android:textSize="13sp" />
+                android:textSize="14sp" />
+
+            <com.DirtyTeam.sky.NyamaNyama.TagFlowLayout
+                android:id="@+id/dish_segments"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp" />
 
             <TextView
-                android:id="@+id/dish_segment"
+                android:id="@+id/dish_sections_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/dish_sections"
+                android:textColor="@color/nyama_text_muted"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/dish_sections"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:paddingStart="14dp"
-                android:paddingTop="8dp"
+                android:paddingTop="10dp"
                 android:paddingEnd="14dp"
-                android:paddingBottom="8dp"
+                android:paddingBottom="10dp"
                 android:textColor="@color/white"
-                android:textSize="14sp" />
+                android:textSize="15sp" />
         </LinearLayout>
     </ScrollView>
 

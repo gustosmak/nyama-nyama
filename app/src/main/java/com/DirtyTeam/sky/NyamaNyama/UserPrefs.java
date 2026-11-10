@@ -113,7 +113,7 @@ public final class UserPrefs {
             coordinates.put("latitude", latitude);
             coordinates.put("longitude", longitude);
             session.put("coordinates", coordinates);
-            fillMarks(session);
+            fillMarks(context, session);
         } catch (JSONException ignored) {
             return;
         }
@@ -150,7 +150,7 @@ public final class UserPrefs {
             if (!session.has("coordinates")) {
                 session.put("coordinates", JSONObject.NULL);
             }
-            fillMarks(session);
+            fillMarks(context, session);
         } catch (JSONException ignored) {
             return;
         }
@@ -333,14 +333,14 @@ public final class UserPrefs {
     private static void refreshSessionMarks(Context context) {
         JSONObject session = session(context);
         try {
-            fillMarks(session);
+            fillMarks(context, session);
         } catch (JSONException ignored) {
             return;
         }
         writeSession(context, session);
     }
 
-    private static void fillMarks(JSONObject session) throws JSONException {
+    private static void fillMarks(Context context, JSONObject session) throws JSONException {
         JSONArray liked = new JSONArray();
         JSONArray history = new JSONArray();
         JSONArray hidden = new JSONArray();

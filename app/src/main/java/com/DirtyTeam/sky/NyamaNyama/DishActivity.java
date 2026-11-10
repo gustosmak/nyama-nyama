@@ -3,6 +3,7 @@ package com.DirtyTeam.sky.NyamaNyama;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import android.view.View;
@@ -73,16 +74,19 @@ public class DishActivity extends AppCompatActivity {
         TextView level = findViewById(R.id.dish_level);
         TextView priceView = findViewById(R.id.dish_price);
         TextView calories = findViewById(R.id.dish_calories);
-        TextView segmentLabel = findViewById(R.id.dish_segment_label);
-        TextView segment = findViewById(R.id.dish_segment);
+        TextView segmentsLabel = findViewById(R.id.dish_segments_label);
+        TagFlowLayout segments = findViewById(R.id.dish_segments);
+        TextView sectionsLabel = findViewById(R.id.dish_sections_label);
+        TextView sections = findViewById(R.id.dish_sections);
         restaurantView.setTypeface(regular);
         title.setTypeface(bold);
         satiety.setTypeface(regular);
         level.setTypeface(bold);
         priceView.setTypeface(bold);
         calories.setTypeface(bold);
-        segmentLabel.setTypeface(regular);
-        segment.setTypeface(bold);
+        segmentsLabel.setTypeface(bold);
+        sectionsLabel.setTypeface(bold);
+        sections.setTypeface(regular);
 
         restaurantView.setText(restaurant);
         title.setText(dishName);
@@ -92,12 +96,30 @@ public class DishActivity extends AppCompatActivity {
         calories.setText(textExtra(EXTRA_CALORIES));
 
         List<BudgetCategory> categories = DishStyle.categories(this);
-        BudgetCategory category = DishStyle.segment(price, categories);
-        String segmentName = category.name == null || category.name.isEmpty()
-                ? String.valueOf(category.amount)
-                : category.name;
-        segment.setText(segmentName + "  " + category.amount + " \u20BD");
-        segment.setBackground(DishStyle.bubble(segment, category.color));
+        int padH = Math.round(14 * getResources().getDisplayMetrics().density);
+        int padV = Math.round(8 * getResources().getDisplayMetrics().density);
+        for (BudgetCategory category : DishStyle.segments(price, categories)) {
+            TextView chip = new TextView(this);
+            String name = category.name == null || category.name.isEmpty()
+                    ? String.valueOf(category.amount)
+                    : category.name;
+            chip.setText(name + "  " + category.amount + " \u20BD");
+            chip.setTextColor(Color.WHITE);
+            chip.setTypeface(bold);
+            chip.setTextSize(14);
+            chip.setPadding(padH, padV, padH, padV);
+            chip.setBackground(DishStyle.bubble(chip, category.color));
+            segments.addView(chip);
+        }
+        sections.setBackground(DishStyle.bubble(sections, DishStyle.COLOR_MUTED, 24f));
+        StringBuilder names = new StringBuilder();
+        for (String section : MenuDb.sections(this, restaurant, dishName)) {
+            if (names.length() > 0) {
+                names.append(", ");
+            }
+            names.append(section);
+        }
+        sections.setText(names.toString());
 
         findViewById(R.id.dish_like_button).setOnClickListener(v -> {
             liked = !liked;
