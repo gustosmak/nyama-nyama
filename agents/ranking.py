@@ -1,10 +1,8 @@
 # agents/ranking.py
 import json
 import logging
-import re
-import json5
 from langchain_core.prompts import ChatPromptTemplate
-from utils.llm import get_llm
+from utils.llm import get_llm, parse_llm_json
 
 logger = logging.getLogger(__name__)
 
@@ -53,9 +51,11 @@ async def rank_dishes(
         "НЕ ПЫТАЙСЯ считать бюджет и НИКОГДА не пиши в ответе, что блюдо не входит в бюджет.\n"
         "\n⚠️ КРИТИЧЕСКИ ВАЖНО: В значениях полей 'dish' и 'reason' НЕ ИСПОЛЬЗУЙ ДВОЙНЫЕ КАВЫЧКИ (\"). "
         "Если нужно, используй одинарные кавычки (например, Салат 'Цезарь').\n"
-        "\nТвоя задача: Выбери топ-5 блюд, опираясь ИСКЛЮЧИТЕЛЬНО на уровень голода. "
+        "\nТвоя задача: Выбери топ-5 блюд по уровню голода и профилю. "
         "Если голод сильный, выбирай блюда с высоким 'satiety' (ближе к 100). "
-        "Если голод слабый, выбирай блюда с низким 'satiety' (ближе к 10-30).\n"
+        "Если голод слабый, выбирай блюда с низким 'satiety' (ближе к 10-30). "
+        "Не выбирай блюда и секции из hidden и avoid. "
+        "Учитывай liked, history и from_comment.\n"
         "\nВ поле 'reason' напиши ОЧЕНЬ КОРОТКОЕ обоснование (максимум 3-5 слов), например: 'Сытный обед', 'Легкий перекус'.\n"
         "\nВерни JSON-массив объектов строго с полями: "
         "dish (название), price (цена), restaurant (название ресторана), reason (почему выбрали), calories (калории), satiety (насыщение)."
@@ -67,31 +67,10 @@ async def rank_dishes(
         result_text = await chain.ainvoke({"user_prompt": user_prompt})
         raw_content = result_text.content if hasattr(result_text, 'content') else str(result_text)
 
-        raw_content = raw_content.replace("```json", "").replace("```", "").strip()
-
-        match = re.search(r'\[.*\]', raw_content, re.DOTALL)
-        if match:
-            raw_content = match.group(0)
-        else:
-            obj_match = re.search(r'\{.*\}', raw_content, re.DOTALL)
-            if obj_match:
-                raw_content = f"[{obj_match.group(0)}]"
-            else:
-                logger.error(f"Не найдено JSON в ответе LLM: {raw_content[:200]}")
-                return []
-
-        try:
-            dishes_result = json5.loads(raw_content)
-        except Exception:
-            try:
-                dishes_result = json.loads(raw_content)
-            except Exception:
-                try:
-                    import ast
-                    dishes_result = ast.literal_eval(raw_content)
-                except Exception as e:
-                    logger.error(f"Не удалось распарсить JSON от LLM: {e}. Текст: {raw_content[:300]}")
-                    return []
+        dishes_result = parse_llm_json(raw_content)
+        if dishes_result is None:
+            logger.error(f"Не удалось распарсить JSON от LLM. Текст: {raw_content[:300]}")
+            return []
 
         if not isinstance(dishes_result, list):
             dishes_result = [dishes_result] if isinstance(dishes_result, dict) else []

@@ -15,7 +15,7 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from agents.preference import build_profile
 from agents.ranking import rank_dishes
-from utils.llm import get_llm
+from utils.llm import get_llm, parse_llm_json
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +28,11 @@ class RecommendState(TypedDict, total=False):
     lon: float
     restaurants: list[dict[str, Any]]
     profile: dict[str, Any] | None
+    comment: str
+    liked: list[dict[str, Any]]
+    history: list[dict[str, Any]]
+    hidden: list[dict[str, Any]]
+    session_path: str
     all_dishes: list[dict[str, Any]]
     budget_recommendations: dict[float, list[dict[str, Any]]]
     fallback: bool
@@ -128,20 +133,10 @@ async def generate_fallback_menu(restaurant_name: str) -> list[dict]:
     try:
         result_text = await chain.ainvoke({})
         raw_content = result_text.content if hasattr(result_text, 'content') else str(result_text)
-        raw_content = raw_content.replace("```json", "").replace("```", "").strip()
-
-        match = re.search(r'\[.*\]', raw_content, re.DOTALL)
-        if match:
-            raw_content = match.group(0)
-
-        try:
-            dishes = json.loads(raw_content)
-        except Exception:
-            try:
-                dishes = ast.literal_eval(raw_content)
-            except Exception:
-                logger.error(f"Не удалось распарсить ответ LLM: {raw_content[:100]}...")
-                return []
+        dishes = parse_llm_json(raw_content)
+        if dishes is None:
+            logger.error(f"Не удалось распарсить ответ LLM: {raw_content[:100]}...")
+            return []
 
         if not isinstance(dishes, list):
             dishes = [dishes] if isinstance(dishes, dict) else []
@@ -201,12 +196,14 @@ async def location_node(state: RecommendState, tools: dict) -> dict:
 
 
 async def preference_node(state: RecommendState, tools: dict) -> dict:
-    db = tools.get("_db")
-    if db is None:
-        logger.warning("No DB provided. Skipping preference build.")
-        return {"profile": None}
     try:
-        profile = build_profile(db, state["user_id"])
+        profile = await build_profile(
+            comment=state.get("comment"),
+            liked=state.get("liked"),
+            history=state.get("history"),
+            hidden=state.get("hidden"),
+            session_path=state.get("session_path"),
+        )
         return {"profile": profile}
     except Exception as e:
         logger.error(f"Failed to build profile: {e}")

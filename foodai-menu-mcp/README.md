@@ -1,1 +1,0 @@
-# FoodAI Menu MCP Server

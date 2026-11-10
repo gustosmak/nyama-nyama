@@ -95,7 +95,18 @@ async def load_tools(stack: AsyncExitStack, name: str, url: str) -> List[BaseToo
         return []
 
 
-async def run_foodai_pipeline(lat: float, lon: float, budgets: list[float], hunger: str, user_id: int = 1):
+async def run_foodai_pipeline(
+        lat: float,
+        lon: float,
+        budgets: list[float],
+        hunger: str,
+        user_id: int = 1,
+        comment: str | None = None,
+        liked: list | None = None,
+        history: list | None = None,
+        hidden: list | None = None,
+        session_path: str | None = None,
+):
     print(f"\n{'=' * 60}")
     print(f"🚀 ЗАПУСК ПАЙПЛАЙНА")
     print(f"   Бюджеты: {budgets}")
@@ -125,6 +136,11 @@ async def run_foodai_pipeline(lat: float, lon: float, budgets: list[float], hung
             "lon": lon,
             "budgets": budgets,
             "hunger": hunger,
+            "comment": comment,
+            "liked": liked,
+            "history": history,
+            "hidden": hidden,
+            "session_path": session_path,
         }
 
         print("🏃 Запуск графа...\n")
@@ -186,5 +202,21 @@ if __name__ == "__main__":
         lon=37.5315,
         budgets=[300, 500, 1000],
         hunger="средний",
-        user_id=1
+        user_id=1,
+        comment="Хочу плотно поесть, без острого и без десертов",
+        liked=[
+            {"restaurant": "kfc", "name": "Чизбургер"},
+            {"restaurant": "burger king", "name": "Двойной Воппер"},
+            {"restaurant": "додо пицца", "name": "Пицца Пепперони"},
+        ],
+        history=[
+            {"restaurant": "вкусно и точка", "name": "Биг Спешиал"},
+            {"restaurant": "kfc", "name": "Картофель фри (средний)"},
+            {"restaurant": "теремок", "name": "Блин с ветчиной и сыром"},
+        ],
+        hidden=[
+            {"restaurant": "kfc", "name": "Баскет Рост (острый)"},
+            {"restaurant": "cofix", "name": "Донат шоколадный"},
+            {"restaurant": "subway", "name": "Печенье с шоколадом"},
+        ],
     ))
