@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="10dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="14dp"
+    android:paddingTop="8dp"
+    android:paddingEnd="8dp"
+    android:paddingBottom="8dp">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <EditText
+            android:id="@+id/budget_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:hint="@string/budget_custom_hint"
+            android:importantForAutofill="no"
+            android:inputType="textMultiLine"
+            android:maxLength="30"
+            android:textColor="@color/nyama_text_secondary"
+            android:textColorHint="@color/nyama_text_secondary"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/budget_description"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="@color/nyama_text_muted"
+            android:textSize="11sp"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <EditText
+        android:id="@+id/budget_amount"
+        android:layout_width="52dp"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+        android:gravity="end"
+        android:importantForAutofill="no"
+        android:inputType="number"
+        android:maxLength="7"
+        android:maxLines="1"
+        android:textColor="@color/nyama_text_secondary"
+        android:textSize="15sp" />
+
+    <TextView
+        android:id="@+id/budget_currency"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="2dp"
+        android:layout_marginEnd="6dp"
+        android:text="@string/ruble_sign"
+        android:textColor="@color/nyama_text_secondary"
+        android:textSize="14sp" />
+
+    <ImageButton
+        android:id="@+id/budget_minus"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:background="@drawable/bg_icon_button"
+        android:contentDescription="@string/budget_decrease"
+        android:padding="6dp"
+        android:scaleType="centerInside" />
+
+    <ImageButton
+        android:id="@+id/budget_plus"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_marginStart="6dp"
+        android:background="@drawable/bg_icon_button"
+        android:contentDescription="@string/budget_increase"
+        android:padding="6dp"
+        android:scaleType="centerInside" />
+
+    <ImageButton
+        android:id="@+id/budget_delete"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_marginStart="6dp"
+        android:background="@drawable/bg_icon_button"
+        android:contentDescription="@string/cd_delete_category"
+        android:padding="6dp"
+        android:scaleType="center"
+        android:src="@drawable/ic_close" />
+
+</LinearLayout>
