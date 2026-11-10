@@ -20,6 +20,8 @@ public final class UserPrefs {
     private static final String KEY_BUDGET_CATEGORIES = "budget_categories";
     private static final String KEY_DESIRE = "desire_selection";
     private static final String KEY_DISH_MARKS = "dish_marks";
+    private static final String KEY_COORDINATES = "coordinates";
+    private static final String KEY_USER_ID = "user_id";
 
     private UserPrefs() {
     }
@@ -35,6 +37,19 @@ public final class UserPrefs {
 
     public static void setRegistered(Context context, boolean registered) {
         prefs(context).edit().putBoolean(KEY_IS_REGISTERED, registered).apply();
+    }
+
+    public static long getCurrentUserId(Context context) {
+        return prefs(context).getLong(KEY_USER_ID, 0L);
+    }
+
+    public static void setCurrentUser(Context context, long userId, String login, String password) {
+        prefs(context).edit()
+                .putLong(KEY_USER_ID, userId)
+                .putBoolean(KEY_IS_REGISTERED, true)
+                .putString(KEY_EMAIL, login)
+                .putString(KEY_PASSWORD, password)
+                .apply();
     }
 
     public static void saveAccount(Context context, String email, String password) {
@@ -91,57 +106,84 @@ public final class UserPrefs {
         return categories;
     }
 
-    public static void saveDesireSelection(Context context, DesireSelection selection) {
-        JSONObject object = new JSONObject();
-        JSONArray frames = new JSONArray();
+    public static void saveCoordinates(Context context, double latitude, double longitude) {
+        JSONObject session = session(context);
+        JSONObject coordinates = new JSONObject();
         try {
-            object.put("hunger", selection.hungerLevel);
-            object.put("phrase", selection.hungerPhrase);
-            object.put("comment", selection.comment);
+            coordinates.put("latitude", latitude);
+            coordinates.put("longitude", longitude);
+            session.put("coordinates", coordinates);
+            fillMarks(session);
+        } catch (JSONException ignored) {
+            return;
+        }
+        writeSession(context, session);
+    }
+
+    public static String getSessionJson(Context context) {
+        return session(context).toString();
+    }
+
+    public static void saveDesireSelection(Context context, DesireSelection selection) {
+        JSONObject session = session(context);
+        JSONArray categories = new JSONArray();
+        int hunger = selection.hungerLevel;
+        if (hunger < 1) {
+            hunger = 1;
+        } else if (hunger > 100) {
+            hunger = 100;
+        }
+        try {
+            session.put("hunger", hunger);
+            session.put("phrase", selection.hungerPhrase);
+            session.put("comment", selection.comment == null ? "" : selection.comment);
             for (BudgetCategory category : selection.frames) {
                 JSONObject frame = new JSONObject();
                 frame.put("name", category.name);
                 frame.put("amount", category.amount);
                 frame.put("color", category.color);
                 frame.put("custom", category.custom);
-                frames.put(frame);
+                categories.put(frame);
             }
-            object.put("frames", frames);
+            session.put("categories", categories);
+            session.remove("frames");
+            if (!session.has("coordinates")) {
+                session.put("coordinates", JSONObject.NULL);
+            }
+            fillMarks(session);
         } catch (JSONException ignored) {
             return;
         }
-        prefs(context).edit().putString(KEY_DESIRE, object.toString()).apply();
+        writeSession(context, session);
     }
 
     public static DesireSelection getDesireSelection(Context context) {
         List<BudgetCategory> frames = new ArrayList<>();
-        String raw = prefs(context).getString(KEY_DESIRE, "");
-        if (raw == null || raw.isEmpty()) {
-            return new DesireSelection(0, "", frames, "");
+        JSONObject object = session(context);
+        JSONArray array = object.optJSONArray("categories");
+        if (array == null) {
+            array = object.optJSONArray("frames");
         }
-        try {
-            JSONObject object = new JSONObject(raw);
-            JSONArray array = object.optJSONArray("frames");
-            if (array != null) {
-                for (int i = 0; i < array.length(); i++) {
-                    JSONObject frame = array.getJSONObject(i);
-                    frames.add(new BudgetCategory(
-                            frame.optString("name"),
-                            frame.optInt("amount"),
-                            frame.optInt("color", 0xFFF1B467),
-                            frame.optBoolean("custom")
-                    ));
+        if (array != null) {
+            for (int i = 0; i < array.length(); i++) {
+                JSONObject frame = array.optJSONObject(i);
+                if (frame == null) {
+                    continue;
                 }
+                frames.add(new BudgetCategory(
+                        frame.optString("name"),
+                        frame.optInt("amount"),
+                        frame.optInt("color", 0xFFF1B467),
+                        frame.optBoolean("custom")
+                ));
             }
-            return new DesireSelection(
-                    object.optInt("hunger"),
-                    object.optString("phrase"),
-                    frames,
-                    object.optString("comment")
-            );
-        } catch (JSONException ignored) {
-            return new DesireSelection(0, "", frames, "");
         }
+        return new DesireSelection(
+                object.optInt("hunger"),
+                object.optString("phrase"),
+                frames,
+                object.optString("comment")
+        );
     }
 
     public static boolean isLiked(Context context, String restaurant, String dish) {
@@ -270,6 +312,75 @@ public final class UserPrefs {
             return;
         }
         prefs(context).edit().putString(KEY_DISH_MARKS, all.toString()).apply();
+        refreshSessionMarks(context);
+        saveUserMark(context, restaurant, dish, item);
+    }
+
+    private static void saveUserMark(Context context, String restaurant, String dish, JSONObject item) {
+        long userId = getCurrentUserId(context);
+        if (userId == 0L) {
+            return;
+        }
+        long[] ids = MenuDb.ids(context, restaurant, dish);
+        if (ids[0] == 0L || ids[1] == 0L) {
+            return;
+        }
+        UserDb.setMark(context, userId, ids[0], ids[1], UserDb.TABLE_LIKES, item.optBoolean("liked"));
+        UserDb.setMark(context, userId, ids[0], ids[1], UserDb.TABLE_HISTORY, item.optBoolean("history"));
+        UserDb.setMark(context, userId, ids[0], ids[1], UserDb.TABLE_DISLIKES, item.optBoolean("hidden"));
+    }
+
+    private static void refreshSessionMarks(Context context) {
+        JSONObject session = session(context);
+        try {
+            fillMarks(session);
+        } catch (JSONException ignored) {
+            return;
+        }
+        writeSession(context, session);
+    }
+
+    private static void fillMarks(JSONObject session) throws JSONException {
+        JSONArray liked = new JSONArray();
+        JSONArray history = new JSONArray();
+        JSONArray hidden = new JSONArray();
+        for (MarkedDish marked : markedDishes(context)) {
+            if (marked.liked) {
+                liked.put(markedNames(marked.restaurant, marked.dish));
+            }
+            if (marked.history) {
+                history.put(markedNames(marked.restaurant, marked.dish));
+            }
+            if (marked.hidden) {
+                hidden.put(markedNames(marked.restaurant, marked.dish));
+            }
+        }
+        session.put("liked", liked);
+        session.put("history", history);
+        session.put("hidden", hidden);
+    }
+
+    private static JSONObject markedNames(String restaurant, String dish) throws JSONException {
+        JSONObject object = new JSONObject();
+        object.put("restaurant", restaurant);
+        object.put("name", dish);
+        return object;
+    }
+
+    private static JSONObject session(Context context) {
+        String raw = prefs(context).getString(KEY_DESIRE, "");
+        try {
+            if (raw == null || raw.isEmpty()) {
+                return new JSONObject();
+            }
+            return new JSONObject(raw);
+        } catch (JSONException ignored) {
+            return new JSONObject();
+        }
+    }
+
+    private static void writeSession(Context context, JSONObject session) {
+        prefs(context).edit().putString(KEY_DESIRE, session.toString()).apply();
     }
 
     private static JSONObject marks(Context context) {

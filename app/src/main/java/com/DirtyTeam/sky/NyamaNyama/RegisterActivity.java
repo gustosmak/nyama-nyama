@@ -62,10 +62,25 @@ public class RegisterActivity extends AppCompatActivity {
                 snackbar.show();
                 return;
             }
-            UserPrefs.setRegistered(this, true);
-            UserPrefs.saveAccount(this, textOf(emailEdit), textOf(passwordEdit));
-            startActivity(new Intent(this, HomeActivity.class));
-            finish();
+            String login = textOf(emailEdit);
+            String password = textOf(passwordEdit);
+            long userId = UserDb.register(this, login, password);
+            if (userId < 0L) {
+                Snackbar snackbar = Snackbar.make(
+                        findViewById(R.id.register_root),
+                        R.string.register_exists,
+                        Snackbar.LENGTH_LONG
+                );
+                snackbar.setBackgroundTint(ContextCompat.getColor(this, R.color.nyama_orange));
+                snackbar.setTextColor(ContextCompat.getColor(this, R.color.nyama_gray));
+                snackbar.setAnchorView(actionRegister);
+                snackbar.show();
+                return;
+            }
+            UserPrefs.setCurrentUser(this, userId, login, password);
+            Intent home = new Intent(this, HomeActivity.class);
+            home.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(home);
         });
     }
 

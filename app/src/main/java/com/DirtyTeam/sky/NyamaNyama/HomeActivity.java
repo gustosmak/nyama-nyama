@@ -269,6 +269,7 @@ public class HomeActivity extends AppCompatActivity {
             mapView.getOverlays().add(userMarker);
         }
         userMarker.setPosition(point);
+        UserPrefs.saveCoordinates(this, point.getLatitude(), point.getLongitude());
         mapView.getController().setZoom(16.0);
         mapView.getController().animateTo(point);
         mapView.invalidate();

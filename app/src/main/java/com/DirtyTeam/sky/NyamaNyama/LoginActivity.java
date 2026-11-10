@@ -52,9 +52,13 @@ public class LoginActivity extends AppCompatActivity {
                 showEmptyWarning(actionLogin);
                 return;
             }
-            UserPrefs.saveAccount(this, login, password);
-            startActivity(new Intent(this, HomeActivity.class));
-            finish();
+            long userId = UserDb.find(this, login, password);
+            if (userId < 0L) {
+                showWarning(actionLogin, R.string.login_failed);
+                return;
+            }
+            UserPrefs.setCurrentUser(this, userId, login, password);
+            openHome();
         });
     }
 
@@ -65,10 +69,20 @@ public class LoginActivity extends AppCompatActivity {
         return editText.getText().toString().trim();
     }
 
+    private void openHome() {
+        Intent home = new Intent(this, HomeActivity.class);
+        home.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(home);
+    }
+
     private void showEmptyWarning(Button anchor) {
+        showWarning(anchor, R.string.login_empty_warning);
+    }
+
+    private void showWarning(Button anchor, int message) {
         Snackbar snackbar = Snackbar.make(
                 findViewById(R.id.login_root),
-                R.string.login_empty_warning,
+                message,
                 Snackbar.LENGTH_LONG
         );
         snackbar.setBackgroundTint(ContextCompat.getColor(this, R.color.nyama_orange));
