@@ -1,6 +1,8 @@
 import re
 from fastmcp import FastMCP
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Union
+@mcp.tool()
+def get_menu(restaurant_name: str) -> Union[List[Dict[str, Any]], Dict[str, str]]:
 
 mcp = FastMCP("FoodAI-Menu")
 
