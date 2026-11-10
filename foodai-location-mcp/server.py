@@ -6,22 +6,16 @@ from typing import List, Dict, Any
 mcp = FastMCP("FoodAI-Location")
 
 TWOGIS_API_KEY = os.getenv("TWO_GIS_API_KEY")
-# ✅ Возвращаемся на /3.0/items — этот сервис точно включён в твоём ключе
-TWOGIS_PLACES_URL = "https://catalog.api.2gis.com/3.0/items"
+TWOGIS_PLACES_URL = "https://twogis-proxy.zherdevdenis25.workers.dev/3.0/items"
 
 @mcp.tool()
 async def find_restaurants(latitude: float, longitude: float, budget: int) -> List[Dict[str, Any]]:
-    """
-    Находит рестораны и кафе в радиусе 1000 метров, сортируя их по расстоянию.
-    """
     point = f"{longitude},{latitude}"
-    
+
     params = {
-        "q": "ресторан кафе",
-        "point": point,          # точка, вокруг которой ищем
+        "q": "ресторан",
+        "point": point,
         "radius": 1000,
-        "location": point,       # точка, от которой считается расстояние для сортировки
-        "sort": "distance",      # 👈 сортировка по возрастанию расстояния
         "key": TWOGIS_API_KEY,
         "fields": "items.point,items.address_name,items.rubrics",
         "page_size": 10
@@ -29,28 +23,26 @@ async def find_restaurants(latitude: float, longitude: float, budget: int) -> Li
 
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.get(TWOGIS_PLACES_URL, params=params, timeout=10.0)
+            response = await client.get(TWOGIS_PLACES_URL, params=params, timeout=15.0)
             data = response.json()
+            print(f"2GIS RESPONSE: {data}")
 
             if data.get("meta", {}).get("code") != 200:
-                error_msg = data.get("meta", {}).get("error", {}).get("message", "Неизвестная ошибка 2GIS")
-                return [{"status": "error", "message": f"2GIS API вернул ошибку: {error_msg}"}]
-
+                return []
     except Exception as e:
-        return [{"status": "error", "message": f"Ошибка сети: {e}"}]
+        print(f"Ошибка 2GIS: {e}")
+        return []
 
     if "result" not in data or "items" not in data["result"]:
-        return [{"status": "error", "message": "2GIS вернул пустой список."}]
+        return []
 
     restaurants = []
     for item in data["result"]["items"]:
         name = item.get("name")
         address = item.get("address_name", "Адрес не указан")
-        
         point_data = item.get("point", {})
         lat = point_data.get("lat")
         lon = point_data.get("lon")
-        
         rubrics = item.get("rubrics", [])
         cuisine = rubrics[0].get("name", "Заведение") if rubrics else "Заведение"
 
@@ -65,7 +57,6 @@ async def find_restaurants(latitude: float, longitude: float, budget: int) -> Li
 
     return restaurants
 
-# Функция get_route остаётся без изменений...
 @mcp.tool()
 async def get_route(start_lat: float, start_lon: float, end_lat: float, end_lon: float, mode: str = "driving") -> Dict[str, Any]:
     url = f"http://router.project-osrm.org/route/v1/{mode}/{start_lon},{start_lat};{end_lon},{end_lat}?overview=false"
