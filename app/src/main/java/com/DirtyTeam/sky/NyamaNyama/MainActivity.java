@@ -34,14 +34,12 @@ public class MainActivity extends AppCompatActivity {
 
         Button loginButton = findViewById(R.id.login_button);
         Button registerButton = findViewById(R.id.register_button);
-        Button leaveButton = findViewById(R.id.leave_button);
-        AppFonts.applyMontserratBold(loginButton, registerButton, leaveButton);
+        AppFonts.applyMontserratBold(loginButton, registerButton);
 
         loginButton.setOnClickListener(v ->
                 startActivity(new Intent(this, LoginActivity.class)));
         registerButton.setOnClickListener(v ->
                 startActivity(new Intent(this, RegisterActivity.class)));
-        leaveButton.setOnClickListener(v -> finishAffinity());
     }
 
     private void stretchTitleToScreenWidth(TextView title) {

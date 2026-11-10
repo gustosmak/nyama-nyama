@@ -13,6 +13,5 @@
     <color name="nyama_text_muted">#FF9C9894</color>
 
     <color name="btn_login">#E6A974</color>
-    <color name="btn_register">#9AB281</color>
-    <color name="btn_leave">#252128</color>
+    <color name="btn_leave">#2C2926</color>
 </resources>

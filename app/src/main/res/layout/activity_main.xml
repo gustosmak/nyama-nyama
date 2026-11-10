@@ -67,7 +67,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/main_title"
-        app:layout_constraintVertical_bias="0.45"
+        app:layout_constraintVertical_bias="0.82"
         app:layout_constraintVertical_chainStyle="packed" />
 
     <com.google.android.material.button.MaterialButton
@@ -78,31 +78,14 @@
         android:layout_marginStart="40dp"
         android:layout_marginTop="20dp"
         android:layout_marginEnd="40dp"
+        android:layout_marginBottom="28dp"
         android:fontFamily="@font/montserrat_bold"
         android:text="@string/register_button"
         android:textSize="22sp"
-        app:backgroundTint="@color/btn_register"
-        app:layout_constraintBottom_toTopOf="@id/leave_button"
+        app:backgroundTint="@color/btn_leave"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/login_button" />
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/leave_button"
-        style="@style/Widget.NyamaNyama.MenuButton"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="40dp"
-        android:layout_marginTop="20dp"
-        android:layout_marginEnd="40dp"
-        android:fontFamily="@font/montserrat_bold"
-        android:text="@string/leave_button"
-        android:textSize="22sp"
-        app:backgroundTint="@color/nyama_gray_light"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/register_button" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

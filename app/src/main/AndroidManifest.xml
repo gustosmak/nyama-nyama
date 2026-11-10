@@ -46,6 +46,12 @@
             android:name=".OffersActivity"
             android:exported="false" />
         <activity
+            android:name=".RestaurantActivity"
+            android:exported="false" />
+        <activity
+            android:name=".DishActivity"
+            android:exported="false" />
+        <activity
             android:name=".ProfileActivity"
             android:exported="false" />
     </application>

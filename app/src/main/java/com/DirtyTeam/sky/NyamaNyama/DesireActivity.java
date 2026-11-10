@@ -11,13 +11,10 @@ import android.text.Editable;
 import android.text.InputFilter;
 import android.text.TextWatcher;
 import android.view.View;
+import android.view.animation.OvershootInterpolator;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.ScrollView;
-import android.view.ViewTreeObserver;
-import android.view.animation.DecelerateInterpolator;
-import android.view.animation.OvershootInterpolator;
-import android.widget.CheckBox;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
@@ -33,9 +30,7 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.ArrayList;
-import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.Map;
 
 public class DesireActivity extends AppCompatActivity {
 
@@ -53,7 +48,6 @@ public class DesireActivity extends AppCompatActivity {
     private static final int HUNGER_IDLE = 0xFFD8D5D0;
 
     private GradientDrawable popupBackground;
-    private boolean reordering;
     private boolean hungerChosen;
     private int shownPhrase = -1;
 
@@ -245,7 +239,7 @@ public class DesireActivity extends AppCompatActivity {
         List<BudgetCategory> selected = new ArrayList<>();
         for (int i = 0; i < tags.getChildCount(); i++) {
             View child = tags.getChildAt(i);
-            CheckBox check = child.findViewById(R.id.tag_check);
+            RoundCheck check = child.findViewById(R.id.tag_check);
             if (check.isChecked() && child.getTag() instanceof BudgetCategory) {
                 selected.add((BudgetCategory) child.getTag());
             }
@@ -293,80 +287,18 @@ public class DesireActivity extends AppCompatActivity {
         View tag = getLayoutInflater().inflate(R.layout.item_budget_tag, tags, false);
         tag.setTag(category);
         tag.setBackground(bubble(category.color));
-        CheckBox check = tag.findViewById(R.id.tag_check);
+        RoundCheck check = tag.findViewById(R.id.tag_check);
         TextView label = tag.findViewById(R.id.tag_label);
         label.setTypeface(bold);
         label.setText(category.name + "  " + category.amount + " " + getString(R.string.ruble_sign));
-        check.setButtonTintList(android.content.res.ColorStateList.valueOf(Color.WHITE));
-        check.setOnCheckedChangeListener((button, isChecked) -> moveCheckedToFront(isChecked ? tag : null));
+        check.setOnCheckedChangeListener((button, isChecked) -> TagMotion.moveCheckedToFront(tags, isChecked ? tag : null));
         tag.setOnClickListener(v -> check.toggle());
         tags.addView(tag);
     }
 
-    private void moveCheckedToFront(View rising) {
-        if (reordering) {
-            return;
-        }
-        reordering = true;
-        Map<View, int[]> starts = new IdentityHashMap<>();
-        List<View> selected = new ArrayList<>();
-        List<View> rest = new ArrayList<>();
-        for (int i = 0; i < tags.getChildCount(); i++) {
-            View child = tags.getChildAt(i);
-            starts.put(child, new int[]{child.getLeft(), child.getTop()});
-            CheckBox check = child.findViewById(R.id.tag_check);
-            if (check.isChecked()) {
-                selected.add(child);
-            } else {
-                rest.add(child);
-            }
-        }
-        tags.removeAllViews();
-        for (View child : selected) {
-            tags.addView(child);
-        }
-        for (View child : rest) {
-            tags.addView(child);
-        }
-        tags.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-            @Override
-            public void onGlobalLayout() {
-                tags.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                float extra = 28 * getResources().getDisplayMetrics().density;
-                for (int i = 0; i < tags.getChildCount(); i++) {
-                    View child = tags.getChildAt(i);
-                    int[] start = starts.get(child);
-                    if (start == null) {
-                        continue;
-                    }
-                    float dx = start[0] - child.getLeft();
-                    float dy = start[1] - child.getTop();
-                    boolean lift = child == rising;
-                    if (lift) {
-                        dy += extra;
-                        child.setTranslationZ(extra);
-                    }
-                    if (dx == 0f && dy == 0f) {
-                        continue;
-                    }
-                    child.setTranslationX(dx);
-                    child.setTranslationY(dy);
-                    child.animate()
-                            .translationX(0f)
-                            .translationY(0f)
-                            .translationZ(0f)
-                            .setDuration(lift ? 460 : 280)
-                            .setInterpolator(lift ? new OvershootInterpolator(0.8f) : new DecelerateInterpolator())
-                            .start();
-                }
-                reordering = false;
-            }
-        });
-    }
-
     private boolean hasSelectedTag() {
         for (int i = 0; i < tags.getChildCount(); i++) {
-            CheckBox check = tags.getChildAt(i).findViewById(R.id.tag_check);
+            RoundCheck check = tags.getChildAt(i).findViewById(R.id.tag_check);
             if (check.isChecked()) {
                 return true;
             }

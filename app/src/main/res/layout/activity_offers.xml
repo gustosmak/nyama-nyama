@@ -40,6 +40,8 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
         android:scrollbars="none"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -49,6 +51,7 @@
             android:id="@+id/selected_categories"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:clipChildren="false"
             android:orientation="horizontal"
             android:paddingStart="24dp"
             android:paddingEnd="24dp" />

@@ -78,7 +78,7 @@
             android:layout_marginStart="8dp"
             android:layout_marginEnd="16dp"
             android:text="@string/recommendations"
-            app:backgroundTint="@color/btn_register"
+            app:backgroundTint="@color/btn_leave"
             app:layout_constraintBottom_toBottomOf="@id/want_button"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@id/want_button"

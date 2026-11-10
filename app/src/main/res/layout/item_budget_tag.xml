@@ -9,13 +9,19 @@
     android:paddingEnd="12dp"
     android:paddingBottom="6dp">
 
-    <androidx.appcompat.widget.AppCompatCheckBox
+    <com.DirtyTeam.sky.NyamaNyama.RoundCheck
         android:id="@+id/tag_check"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:minWidth="0dp"
-        android:minHeight="0dp"
-        android:padding="0dp" />
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:contentDescription="@string/cd_toggle" />
+
+    <ImageView
+        android:id="@+id/tag_icon"
+        android:layout_width="16dp"
+        android:layout_height="16dp"
+        android:layout_marginStart="6dp"
+        android:contentDescription="@null"
+        android:visibility="gone" />
 
     <TextView
         android:id="@+id/tag_label"
