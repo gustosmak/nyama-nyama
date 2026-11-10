@@ -108,5 +108,9 @@ fabric.properties
 *.obj
 *.o
 
-__pycache__/
 .env
+.venv/
+venv/
+__pycache__/
+*.pyc
+.idea/
