@@ -23,6 +23,8 @@ import java.util.Map;
 public class RestaurantActivity extends AppCompatActivity {
 
     public static final String EXTRA_NAME = "restaurant";
+    public static final String EXTRA_TIME = "travel";
+    public static final String EXTRA_DISTANCE = "distance";
 
     private final List<BudgetCategory> frames = new ArrayList<>();
     private final List<SortTag> selectedOrder = new ArrayList<>();
@@ -41,10 +43,29 @@ public class RestaurantActivity extends AppCompatActivity {
     private Typeface bold;
     private Typeface regular;
 
-    public static void open(Context context, String restaurant) {
+    public static void open(Context context, String restaurant, String travelTime, Integer distanceMeters) {
         Intent intent = new Intent(context, RestaurantActivity.class);
         intent.putExtra(EXTRA_NAME, restaurant);
+        intent.putExtra(EXTRA_TIME, travelTime == null || travelTime.isEmpty() ? "0 min" : travelTime);
+        if (distanceMeters != null) {
+            intent.putExtra(EXTRA_DISTANCE, distanceMeters);
+        }
         context.startActivity(intent);
+    }
+
+    static String formatDistance(Integer meters) {
+        if (meters == null || meters < 0) {
+            return "";
+        }
+        if (meters < 2000) {
+            return meters + " \u043c";
+        }
+        int whole = meters / 1000;
+        int tenth = (meters % 1000) / 100;
+        if (tenth == 0) {
+            return whole + " \u043a\u043c";
+        }
+        return whole + "." + tenth + " \u043a\u043c";
     }
 
     @Override
@@ -69,22 +90,43 @@ public class RestaurantActivity extends AppCompatActivity {
         title.setTypeface(bold);
         TextView name = findViewById(R.id.restaurant_name);
         TextView time = findViewById(R.id.restaurant_time);
+        TextView distance = findViewById(R.id.restaurant_distance);
         name.setTypeface(bold);
         time.setTypeface(bold);
+        distance.setTypeface(bold);
         TextView menu = findViewById(R.id.restaurant_menu);
         menu.setTypeface(regular);
         name.setText(restaurantName);
 
-        for (Offer offer : OffersRepository.load(this)) {
-            if (offer.name.equals(restaurantName)) {
-                restaurant = offer;
-                break;
+        String shownTime = getIntent().getStringExtra(EXTRA_TIME);
+        if (shownTime == null || shownTime.isEmpty()) {
+            shownTime = "0 min";
+        }
+        Integer distanceMeters = getIntent().hasExtra(EXTRA_DISTANCE)
+                ? getIntent().getIntExtra(EXTRA_DISTANCE, -1)
+                : null;
+        restaurant = new Offer(restaurantName, shownTime, distanceMeters);
+        time.setText(shownTime);
+        distance.setText(formatDistance(distanceMeters));
+        new Thread(() -> {
+            Offer found = restaurant;
+            String wanted = restaurantName.trim();
+            for (Offer offer : OffersRepository.load()) {
+                if (offer.name != null && offer.name.trim().equalsIgnoreCase(wanted)) {
+                    found = new Offer(offer.name, restaurant.travelTime, restaurant.distanceMeters);
+                    found.dishes.addAll(offer.dishes);
+                    break;
+                }
             }
-        }
-        if (restaurant == null) {
-            restaurant = new Offer(restaurantName, "");
-        }
-        time.setText(restaurant.travelTime);
+            Offer ready = found;
+            runOnUiThread(() -> {
+                restaurant = ready;
+                if (ready.travelTime != null && !ready.travelTime.isEmpty()) {
+                    time.setText(ready.travelTime);
+                }
+                showDishes();
+            });
+        }).start();
         findViewById(R.id.restaurant_pin).setOnClickListener(
                 v -> OffersActivity.openRestaurantMap(v.getContext(), restaurantName)
         );

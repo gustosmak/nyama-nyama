@@ -1,12 +1,17 @@
 package com.DirtyTeam.sky.NyamaNyama;
 
+import android.content.Intent;
 import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
@@ -59,6 +64,7 @@ public class ProfileActivity extends AppCompatActivity {
         });
 
         findViewById(R.id.profile_back).setOnClickListener(v -> finish());
+        findViewById(R.id.profile_menu).setOnClickListener(this::showProfileMenu);
 
         bold = AppFonts.montserratBold(this);
         regular = AppFonts.montserratRegular(this);
@@ -130,6 +136,50 @@ public class ProfileActivity extends AppCompatActivity {
         label.setTextColor(selected ? 0xFFFFFFFF : DishStyle.COLOR_MUTED);
     }
 
+    private void showProfileMenu(View anchor) {
+        View card = LayoutInflater.from(this).inflate(R.layout.view_profile_menu, null);
+        ((TextView) card.findViewById(R.id.profile_menu_title)).setTypeface(bold);
+        TextView delete = card.findViewById(R.id.profile_menu_delete);
+        TextView history = card.findViewById(R.id.profile_menu_history);
+        TextView likes = card.findViewById(R.id.profile_menu_likes);
+        TextView hidden = card.findViewById(R.id.profile_menu_hidden);
+        delete.setTypeface(regular);
+        history.setTypeface(regular);
+        likes.setTypeface(regular);
+        hidden.setTypeface(regular);
+        PopupWindow window = new PopupWindow(
+                card,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                true
+        );
+        window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        window.setOutsideTouchable(true);
+        delete.setOnClickListener(v -> {
+            window.dismiss();
+            UserPrefs.deleteProfile(this);
+            Intent login = new Intent(this, LoginActivity.class);
+            login.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(login);
+        });
+        history.setOnClickListener(v -> {
+            window.dismiss();
+            UserPrefs.clearHistory(this);
+            showDishes();
+        });
+        likes.setOnClickListener(v -> {
+            window.dismiss();
+            UserPrefs.clearLikes(this);
+            showDishes();
+        });
+        hidden.setOnClickListener(v -> {
+            window.dismiss();
+            UserPrefs.clearHidden(this);
+            showDishes();
+        });
+        window.showAsDropDown(anchor, 0, Math.round(6 * getResources().getDisplayMetrics().density), Gravity.END);
+    }
+
     private void showDishes() {
         if (dishes == null) {
             return;
@@ -156,8 +206,22 @@ public class ProfileActivity extends AppCompatActivity {
         });
         dishes.removeAllViews();
         empty.setVisibility(shown.isEmpty() ? View.VISIBLE : View.GONE);
-        List<Offer> offers = OffersRepository.load(this);
         List<BudgetCategory> categories = DishStyle.categories(this);
+        new Thread(() -> {
+            List<Offer> offers = OffersRepository.load();
+            runOnUiThread(() -> bindShown(shown, offers, categories));
+        }).start();
+    }
+
+    private void bindShown(
+            List<UserPrefs.MarkedDish> shown,
+            List<Offer> offers,
+            List<BudgetCategory> categories
+    ) {
+        if (dishes == null) {
+            return;
+        }
+        dishes.removeAllViews();
         LayoutInflater inflater = LayoutInflater.from(this);
         for (UserPrefs.MarkedDish marked : shown) {
             Dish dish = findDish(offers, marked.restaurant, marked.dish);

@@ -124,6 +124,17 @@ public final class UserPrefs {
         return session(context).toString();
     }
 
+    public static double[] getCoordinates(Context context) {
+        JSONObject coordinates = session(context).optJSONObject("coordinates");
+        if (coordinates == null || !coordinates.has("latitude") || !coordinates.has("longitude")) {
+            return null;
+        }
+        return new double[]{
+                coordinates.optDouble("latitude"),
+                coordinates.optDouble("longitude")
+        };
+    }
+
     public static void saveDesireSelection(Context context, DesireSelection selection) {
         JSONObject session = session(context);
         JSONArray categories = new JSONArray();
@@ -251,6 +262,52 @@ public final class UserPrefs {
         setMark(context, restaurant, dish, "hidden", hidden);
     }
 
+    public static void clearHistory(Context context) {
+        clearMarkField(context, "history");
+        UserDb.clearUserMarks(context, getCurrentUserId(context), UserDb.TABLE_HISTORY);
+    }
+
+    public static void clearLikes(Context context) {
+        clearMarkField(context, "liked");
+        UserDb.clearUserMarks(context, getCurrentUserId(context), UserDb.TABLE_LIKES);
+    }
+
+    public static void clearHidden(Context context) {
+        clearMarkField(context, "hidden");
+        UserDb.clearUserMarks(context, getCurrentUserId(context), UserDb.TABLE_DISLIKES);
+    }
+
+    public static void deleteProfile(Context context) {
+        UserDb.deleteUser(context, getCurrentUserId(context));
+        prefs(context).edit().clear().apply();
+    }
+
+    private static void clearMarkField(Context context, String field) {
+        JSONObject all = marks(context);
+        List<String> keys = new ArrayList<>();
+        Iterator<String> iterator = all.keys();
+        while (iterator.hasNext()) {
+            keys.add(iterator.next());
+        }
+        for (String key : keys) {
+            JSONObject item = all.optJSONObject(key);
+            if (item == null) {
+                continue;
+            }
+            try {
+                applyMark(item, field, false);
+                if (!item.optBoolean("liked") && !item.optBoolean("history") && !item.optBoolean("hidden")) {
+                    all.remove(key);
+                } else {
+                    all.put(key, item);
+                }
+            } catch (JSONException ignored) {
+            }
+        }
+        prefs(context).edit().putString(KEY_DISH_MARKS, all.toString()).apply();
+        refreshSessionMarks(context);
+    }
+
     static boolean[] exclusive(boolean liked, boolean hidden, String field, boolean value) {
         if ("liked".equals(field)) {
             liked = value;
@@ -321,7 +378,7 @@ public final class UserPrefs {
         if (userId == 0L) {
             return;
         }
-        long[] ids = MenuDb.ids(context, restaurant, dish);
+        long[] ids = MenuDb.ids(restaurant, dish);
         if (ids[0] == 0L || ids[1] == 0L) {
             return;
         }

@@ -1,0 +1,103 @@
+import sqlite3
+import re
+import os
+import json
+from pathlib import Path
+from fastmcp import FastMCP
+from typing import List, Dict, Any, Union
+
+mcp = FastMCP("FoodAI-Menu")
+DB_PATH = str(Path(__file__).resolve().parents[1] / "databases" / "foodai_menu.db")
+
+# Если базы нет (например, на сервере), создаем её
+if not os.path.exists(DB_PATH):
+    try:
+        from init_db import init_db
+        init_db()
+    except ImportError:
+        pass
+
+def _ensure_generated(conn):
+    columns = [row[1] for row in conn.execute("PRAGMA table_info(dishes)")]
+    if "generated" not in columns:
+        conn.execute("ALTER TABLE dishes ADD COLUMN generated INTEGER NOT NULL DEFAULT 0")
+        conn.commit()
+
+
+def _normalize_name(name: str) -> str:
+    name = name.lower().strip()
+    name = name.replace("—", " ").replace("-", " ")
+    name = re.sub(r'[^\w\s]', '', name)
+    name = re.sub(r'\s+', ' ', name)
+    return name
+
+@mcp.tool()
+def get_menu(restaurant_name: str) -> Union[List[Dict[str, Any]], Dict[str, str]]:
+    """Возвращает меню ресторана из базы данных."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id, name FROM restaurants WHERE name LIKE ?", (f"%{restaurant_name.lower()}%",))
+    rest = cursor.fetchone()
+
+    if not rest:
+        conn.close()
+        return {
+            "status": "not_found",
+            "restaurant_name": restaurant_name,
+            "message": "Меню нет в базе. Сгенерируй примерное меню, цены, калории и сытность (0-100)."
+        }
+
+    cursor.execute("SELECT name, section, price, calories, satiety, description FROM dishes WHERE restaurant_id = ?", (rest["id"],))
+    dishes = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+
+    return dishes
+
+
+@mcp.tool()
+def save_generated_menu(restaurant_name: str, dishes: str) -> str:
+    """
+    Сохраняет сгенерированное LLM меню в базу данных.
+    Принимает dishes как JSON-строку.
+    """
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id FROM restaurants WHERE name LIKE ?", (f"%{restaurant_name.lower()}%",))
+    rest = cursor.fetchone()
+
+    if rest:
+        rest_id = rest[0]
+    else:
+        cursor.execute("INSERT INTO restaurants (name) VALUES (?)", (restaurant_name,))
+        rest_id = cursor.lastrowid
+
+    try:
+        dishes_list = json.loads(dishes)
+    except Exception:
+        dishes_list = []
+
+    for d in dishes_list:
+        if not isinstance(d, dict):
+            continue
+        cursor.execute('''
+            INSERT INTO dishes (restaurant_id, name, section, price, calories, satiety, description)
+            INSERT INTO dishes (restaurant_id, name, section, price, calories, satiety, description, generated)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+            rest_id,
+            d.get('name') or d.get('dish'),
+            d.get('section', 'сгенерировано'),
+            d.get('price'),
+            d.get('calories'),
+            d.get('satiety', 50),
+            d.get('description', '')
+        ))
+
+    conn.commit()
+    conn.close()
+    return f"✅ Меню для '{restaurant_name}' сохранено в БД!"
+
+if __name__ == "__main__":
+    mcp.run(transport="streamable-http")

@@ -1,8 +1,12 @@
 import sqlite3
+from pathlib import Path
+
+USERS_DB = Path(__file__).resolve().parents[1] / "databases" / "users.db"
 
 
 def init_users():
-    conn = sqlite3.connect("users.db")
+    USERS_DB.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(USERS_DB)
     cursor = conn.cursor()
     cursor.executescript(
         """

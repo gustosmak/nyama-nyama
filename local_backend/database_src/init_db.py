@@ -1,6 +1,9 @@
 # init_db.py
 import sqlite3
+from pathlib import Path
 from menu_data import MENU_DATABASE
+
+MENU_DB = Path(__file__).resolve().parents[1] / "databases" / "foodai_menu.db"
 
 def calculate_satiety(calories: int) -> int:
     """
@@ -13,7 +16,8 @@ def calculate_satiety(calories: int) -> int:
 
 def init_db():
     # Подключаемся к файлу базы данных (он создастся автоматически)
-    conn = sqlite3.connect('foodai_menu.db')
+    MENU_DB.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(MENU_DB)
     cursor = conn.cursor()
 
     # Удаляем старые таблицы, если они есть (чтобы не было ошибок при перезапуске)
@@ -49,6 +53,7 @@ def init_db():
             calories INTEGER,
             satiety INTEGER,
             description TEXT,
+            generated INTEGER NOT NULL DEFAULT 0,
             FOREIGN KEY (restaurant_id) REFERENCES restaurants(id),
             FOREIGN KEY (section_id) REFERENCES sections(id)
         )

@@ -1,4 +1,5 @@
 import json
+import json5
 import logging
 import os
 import sqlite3
@@ -6,7 +7,7 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-_ROOT = Path(__file__).resolve().parents[1]
+_BACKEND = Path(__file__).resolve().parents[1]
 
 
 def load_session(path: str) -> dict:
@@ -27,8 +28,7 @@ def menu_db_path(explicit: str | None = None) -> str | None:
     if explicit and os.path.isfile(explicit):
         return explicit
     candidates = [
-        _ROOT / "app" / "src" / "main" / "assets" / "foodai_menu.db",
-        _ROOT / "foodai-menu-mcp" / "foodai_menu.db",
+        _BACKEND / "databases" / "foodai_menu.db",
         Path("foodai_menu.db"),
     ]
     for path in candidates:
@@ -142,7 +142,7 @@ async def build_profile(
 
     from utils.llm import get_llm
 
-    load_dotenv()
+    load_dotenv(_BACKEND / ".env")
     if session_path:
         session = load_session(session_path)
         if comment is None:
@@ -182,9 +182,11 @@ async def build_profile(
             "system",
             "Ты собираешь вкусовой профиль для рекомендаций еды. "
             "Отвечай только JSON-объектом без markdown. "
-            "Скрытые блюда и секции из них нельзя рекомендовать. "
-            "История — то, что человек уже заказывал. Лайки — то, что ему зашло. "
-            "Комментарий важнее общих догадок.",
+            "Скрытые блюда нельзя рекомендовать. "
+            "Комментарий, лайки и история ничего не запрещают: это только порядок среди уже подходящих мест. "
+            "Важнее комментарий, затем лайки, затем история. "
+            "avoid — вкусы, которые при равном расстоянии ставить ниже, а не список запретов. "
+            "Не оценивай расстояние и не меняй уровень голода. satiety_bias всегда any.",
         ),
         (
             "human",
@@ -195,9 +197,9 @@ async def build_profile(
             "Верни JSON с полями: "
             "summary (одно предложение), "
             "prefer (массив секций или типов еды), "
-            "avoid (массив того, что не предлагать), "
-            "from_comment (что именно просит комментарий), "
-            "satiety_bias (low, medium, high или any).",
+            "avoid (что ставить ниже при равном расстоянии, не запрет), "
+            "from_comment (что именно просит комментарий, пустая строка если комментария нет), "
+            "satiety_bias (всегда any).",
         ),
     ])
     chain = prompt | get_llm(temperature=0.2)

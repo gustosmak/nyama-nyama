@@ -110,7 +110,9 @@ public class DesireActivity extends AppCompatActivity {
                     selectedFrames(),
                     comment.getText() == null ? "" : comment.getText().toString().trim()
             ));
-            startActivity(new Intent(this, OffersActivity.class));
+            Intent offers = new Intent(this, OffersActivity.class);
+            offers.putExtra(OffersActivity.EXTRA_FROM_DESIRE, true);
+            startActivity(offers);
         });
 
         commentLayout = findViewById(R.id.desire_comment_input);

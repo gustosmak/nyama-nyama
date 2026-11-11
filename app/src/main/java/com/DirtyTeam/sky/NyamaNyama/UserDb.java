@@ -95,6 +95,33 @@ public final class UserDb extends SQLiteOpenHelper {
         db.insertWithOnConflict(table, null, values, SQLiteDatabase.CONFLICT_IGNORE);
     }
 
+    static void clearUserMarks(Context context, long userId, String table) {
+        if (userId == 0L || !knownTable(table)) {
+            return;
+        }
+        get(context).getWritableDatabase().delete(
+                table,
+                "user_id = ?",
+                new String[]{String.valueOf(userId)}
+        );
+    }
+
+    static void deleteUser(Context context, long userId) {
+        if (userId == 0L) {
+            return;
+        }
+        SQLiteDatabase database = get(context).getWritableDatabase();
+        String[] key = new String[]{String.valueOf(userId)};
+        database.delete(TABLE_LIKES, "user_id = ?", key);
+        database.delete(TABLE_HISTORY, "user_id = ?", key);
+        database.delete(TABLE_DISLIKES, "user_id = ?", key);
+        database.delete("user_info", "id = ?", key);
+    }
+
+    private static boolean knownTable(String table) {
+        return TABLE_LIKES.equals(table) || TABLE_HISTORY.equals(table) || TABLE_DISLIKES.equals(table);
+    }
+
     private static String markTable(String name) {
         return "CREATE TABLE " + name + " ("
                 + "id INTEGER PRIMARY KEY AUTOINCREMENT,"

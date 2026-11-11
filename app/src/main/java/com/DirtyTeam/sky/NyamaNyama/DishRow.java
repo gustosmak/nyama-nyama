@@ -33,6 +33,11 @@ public final class DishRow {
         price.setTypeface(bold);
         calories.setTypeface(bold);
         dishName.setText(dish.name);
+        TextView generated = row.findViewById(R.id.dish_generated);
+        if (generated != null) {
+            generated.setVisibility(dish.generated ? View.VISIBLE : View.GONE);
+            generated.setTypeface(regular);
+        }
         satiety.setText(dish.satiety);
         price.setText(dish.price + " \u20BD");
         calories.setText(dish.calories);

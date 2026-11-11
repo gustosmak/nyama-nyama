@@ -35,6 +35,21 @@
                 android:textSize="16sp" />
 
             <TextView
+                android:id="@+id/dish_generated"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:background="@drawable/bg_generated_badge"
+                android:paddingStart="8dp"
+                android:paddingTop="2dp"
+                android:paddingEnd="8dp"
+                android:paddingBottom="2dp"
+                android:text="@string/dish_generated"
+                android:textColor="@color/white"
+                android:textSize="12sp"
+                android:visibility="gone" />
+
+            <TextView
                 android:id="@+id/dish_satiety"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

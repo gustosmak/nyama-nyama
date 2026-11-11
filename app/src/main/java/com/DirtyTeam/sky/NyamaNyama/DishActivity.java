@@ -112,14 +112,17 @@ public class DishActivity extends AppCompatActivity {
             segments.addView(chip);
         }
         sections.setBackground(DishStyle.bubble(sections, DishStyle.COLOR_MUTED, 24f));
-        StringBuilder names = new StringBuilder();
-        for (String section : MenuDb.sections(this, restaurant, dishName)) {
-            if (names.length() > 0) {
-                names.append(", ");
+        new Thread(() -> {
+            StringBuilder names = new StringBuilder();
+            for (String section : MenuDb.sections(restaurant, dishName)) {
+                if (names.length() > 0) {
+                    names.append(", ");
+                }
+                names.append(section);
             }
-            names.append(section);
-        }
-        sections.setText(names.toString());
+            String text = names.toString();
+            runOnUiThread(() -> sections.setText(text));
+        }).start();
 
         findViewById(R.id.dish_like_button).setOnClickListener(v -> {
             liked = !liked;

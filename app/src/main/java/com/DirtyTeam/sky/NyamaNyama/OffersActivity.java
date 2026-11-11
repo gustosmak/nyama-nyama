@@ -1,11 +1,14 @@
 package com.DirtyTeam.sky.NyamaNyama;
 
+import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,17 +20,25 @@ import android.widget.TextView;
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class OffersActivity extends AppCompatActivity {
+
+    public static final String EXTRA_FROM_DESIRE = "from_desire";
+
+    private static String memoryRequest;
+    private static List<Offer> memoryOffers;
 
     private final List<BudgetCategory> frames = new ArrayList<>();
     private final List<SortTag> selectedOrder = new ArrayList<>();
@@ -40,6 +51,7 @@ public class OffersActivity extends AppCompatActivity {
     private View likeChip;
     private List<Offer> source = new ArrayList<>();
     private OffersAdapter adapter;
+    private boolean loading = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,18 +89,28 @@ public class OffersActivity extends AppCompatActivity {
             enabled[i] = true;
         }
         showFilters(bold);
-        source = matchingOffers(OffersRepository.load(this), desire, DishStyle.categories(this));
+        source = new ArrayList<>();
 
         RecyclerView list = findViewById(R.id.offers_list);
-        LinearLayoutManager manager = new LinearLayoutManager(this);
+        LinearLayoutManager manager = new LinearLayoutManager(this) {
+            @Override
+            public boolean canScrollVertically() {
+                return adapter == null || !adapter.isWaiting();
+            }
+        };
         adapter = new OffersAdapter(
                 DishStyle.categories(this),
                 bold,
                 AppFonts.montserratRegular(this)
         );
-        adapter.show(arranged());
         list.setLayoutManager(manager);
         list.setAdapter(adapter);
+        if (reuseMemory()) {
+            showMemory();
+        } else {
+            adapter.waitForAnswer();
+            loadRankedOffers();
+        }
         list.addOnScrollListener(new RecyclerView.OnScrollListener() {
             private boolean fastDown;
             private boolean revealing;
@@ -130,24 +152,239 @@ public class OffersActivity extends AppCompatActivity {
         });
     }
 
+    private boolean reuseMemory() {
+        if (memoryOffers == null) {
+            return false;
+        }
+        if (!getIntent().getBooleanExtra(EXTRA_FROM_DESIRE, false)) {
+            return true;
+        }
+        return requestJson() != null && requestJson().equals(memoryRequest);
+    }
+
+    private String requestJson() {
+        try {
+            org.json.JSONObject body = new org.json.JSONObject(UserPrefs.getSessionJson(this));
+            body.put("user_id", UserPrefs.getCurrentUserId(this));
+            return body.toString();
+        } catch (org.json.JSONException error) {
+            return null;
+        }
+    }
+
+    private void showMemory() {
+        loading = false;
+        source = new ArrayList<>(memoryOffers);
+        adapter.show(arranged());
+    }
+
+    private void loadRankedOffers() {
+        final String session = requestJson();
+        if (session == null) {
+            loading = false;
+            adapter.show(arranged());
+            showWarning(R.string.agent_bad_session);
+            return;
+        }
+        new Thread(() -> {
+            List<Offer> ranked = new ArrayList<>();
+            List<String> warnings = new ArrayList<>();
+            boolean reached = false;
+            try {
+                AgentClient.FeedAnswer answer = AgentClient.recommend(session);
+                ranked = answer.offers;
+                warnings = answer.warnings;
+                reached = true;
+            } catch (Exception ignored) {
+            }
+            if (ranked.isEmpty()) {
+                try {
+                    ranked = AgentClient.menu();
+                    if (!ranked.isEmpty() && warnings.isEmpty()) {
+                        warnings.add(reached ? "model_empty" : "model_failed");
+                    }
+                } catch (Exception ignored) {
+                    if (warnings.isEmpty()) {
+                        warnings.add("backend");
+                    }
+                }
+            }
+            if (ranked.isEmpty() && warnings.isEmpty()) {
+                warnings.add("no_menu");
+            }
+            List<Offer> ready = ranked;
+            List<String> notices = warnings;
+            runOnUiThread(() -> {
+                if (isFinishing()) {
+                    return;
+                }
+                loading = false;
+                memoryRequest = session;
+                memoryOffers = new ArrayList<>(ready);
+                source = new ArrayList<>(memoryOffers);
+                adapter.show(arranged());
+                int message = feedWarning(notices);
+                if (message != 0) {
+                    showWarning(message);
+                }
+            });
+        }).start();
+    }
+
+    private static int feedWarning(List<String> warnings) {
+        if (warnings.contains("backend")) {
+            return R.string.agent_backend;
+        }
+        if (warnings.contains("no_menu")) {
+            return R.string.agent_no_menu;
+        }
+        if (warnings.contains("model_timeout")) {
+            return R.string.agent_model_timeout;
+        }
+        if (warnings.contains("model_failed")) {
+            return R.string.agent_model_failed;
+        }
+        if (warnings.contains("model_empty")) {
+            return R.string.offers_from_database;
+        }
+        return 0;
+    }
+
+    private void showWarning(int message) {
+        showBottomWarning(this, message, null);
+    }
+
+    private static void showBottomWarning(Activity activity, int message, Runnable onUnderstood) {
+        if (activity.isFinishing() || message == 0) {
+            return;
+        }
+        ViewGroup host = activity.findViewById(R.id.offers_root);
+        if (host == null) {
+            host = activity.findViewById(R.id.restaurant_root);
+        }
+        if (host == null) {
+            return;
+        }
+        final ViewGroup parent = host;
+        View previous = parent.findViewById(R.id.agent_warning);
+        if (previous != null) {
+            parent.removeView(previous);
+        }
+        View banner = LayoutInflater.from(activity).inflate(R.layout.view_agent_warning, parent, false);
+        TextView text = banner.findViewById(R.id.agent_warning_text);
+        View button = banner.findViewById(R.id.agent_warning_ok);
+        text.setText(message);
+        text.setTypeface(AppFonts.montserratRegular(activity));
+        if (button instanceof TextView) {
+            ((TextView) button).setTypeface(AppFonts.montserratBold(activity));
+        }
+        button.setOnClickListener(v -> {
+            parent.removeView(banner);
+            if (onUnderstood != null) {
+                onUnderstood.run();
+            }
+        });
+        if (parent instanceof ConstraintLayout) {
+            ConstraintLayout.LayoutParams params = new ConstraintLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+            );
+            int margin = Math.round(16 * activity.getResources().getDisplayMetrics().density);
+            params.bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID;
+            params.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;
+            params.endToEnd = ConstraintLayout.LayoutParams.PARENT_ID;
+            params.setMargins(margin, margin, margin, margin);
+            banner.setLayoutParams(params);
+        }
+        parent.addView(banner);
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
-        if (adapter != null) {
+        if (adapter != null && !loading) {
             adapter.show(arranged());
         }
     }
 
     static void openRestaurantMap(Context context, String name) {
-        Uri geo = Uri.parse("geo:0,0?q=" + Uri.encode(name));
-        Intent map = new Intent(Intent.ACTION_VIEW, geo);
-        try {
-            context.startActivity(map);
-        } catch (ActivityNotFoundException first) {
-            Uri web = Uri.parse("https://www.google.com/maps/search/?api=1&query=" + Uri.encode(name));
+        double[] user = UserPrefs.getCoordinates(context);
+        double latitude = user == null ? 55.7905 : user[0];
+        double longitude = user == null ? 37.5315 : user[1];
+        new Thread(() -> {
+            double[] point = null;
+            String warning = "backend";
             try {
-                context.startActivity(new Intent(Intent.ACTION_VIEW, web));
+                AgentClient.PlaceAnswer answer = AgentClient.locate(name, latitude, longitude);
+                point = answer.point;
+                warning = answer.warning;
+            } catch (Exception ignored) {
+            }
+            double[] ready = point;
+            String notice = warning;
+            new Handler(Looper.getMainLooper()).post(() -> {
+                int message = mapWarning(notice);
+                if (message != 0 && context instanceof Activity) {
+                    showBottomWarning((Activity) context, message,
+                            () -> showRestaurantOnMap(context, name, ready));
+                    return;
+                }
+                showRestaurantOnMap(context, name, ready);
+            });
+        }).start();
+    }
+
+    private static int mapWarning(String warning) {
+        if (warning == null || warning.isEmpty()) {
+            return 0;
+        }
+        if ("location_key".equals(warning)) {
+            return R.string.agent_location_key;
+        }
+        if ("location_failed".equals(warning)) {
+            return R.string.agent_location_failed;
+        }
+        if ("place_not_found".equals(warning)) {
+            return R.string.agent_place_not_found;
+        }
+        if ("backend".equals(warning)) {
+            return R.string.agent_location_backend;
+        }
+        return R.string.agent_place_not_found;
+    }
+
+    private static void showRestaurantOnMap(Context context, String name, double[] point) {
+        Context target = context;
+        if (context instanceof Activity && ((Activity) context).isFinishing()) {
+            target = context.getApplicationContext();
+        }
+        Uri geo;
+        Uri web;
+        if (point != null) {
+            String value = String.format(Locale.US, "%.6f,%.6f", point[0], point[1]);
+            geo = Uri.parse("geo:" + value + "?q=" + value + "(" + Uri.encode(name) + ")");
+            web = Uri.parse("https://www.google.com/maps/search/?api=1&query=" + Uri.encode(value));
+        } else {
+            geo = Uri.parse("geo:0,0?q=" + Uri.encode(name));
+            web = Uri.parse("https://www.google.com/maps/search/?api=1&query=" + Uri.encode(name));
+        }
+        Intent map = new Intent(Intent.ACTION_VIEW, geo);
+        if (!(target instanceof Activity)) {
+            map.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        }
+        try {
+            target.startActivity(map);
+        } catch (ActivityNotFoundException first) {
+            Intent browser = new Intent(Intent.ACTION_VIEW, web);
+            if (!(target instanceof Activity)) {
+                browser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            }
+            try {
+                target.startActivity(browser);
             } catch (ActivityNotFoundException ignored) {
+                if (target instanceof Activity) {
+                    showBottomWarning((Activity) target, R.string.agent_no_map, null);
+                }
             }
         }
     }
@@ -170,7 +407,7 @@ public class OffersActivity extends AppCompatActivity {
                     enabled[index],
                     (check, isChecked) -> {
                         setCategoryChecked(index, isChecked);
-                        if (adapter != null) {
+                        if (adapter != null && !loading) {
                             adapter.show(arranged());
                         }
                     }
@@ -182,14 +419,14 @@ public class OffersActivity extends AppCompatActivity {
         historyChip = addChip(inflater, "", R.drawable.ic_history, DishStyle.COLOR_HISTORY, bold, onlyHistory, (check, isChecked) -> {
             onlyHistory = isChecked;
             setMarkChecked(SortTag.history(), isChecked);
-            if (adapter != null) {
+            if (adapter != null && !loading) {
                 adapter.show(arranged());
             }
         });
         likeChip = addChip(inflater, "", R.drawable.ic_heart, DishStyle.COLOR_LIKE, bold, onlyLiked, (check, isChecked) -> {
             onlyLiked = isChecked;
             setMarkChecked(SortTag.liked(), isChecked);
-            if (adapter != null) {
+            if (adapter != null && !loading) {
                 adapter.show(arranged());
             }
         });
@@ -320,7 +557,7 @@ public class OffersActivity extends AppCompatActivity {
         int[] ranks = new int[source.size()];
         int count = 0;
         for (Offer offer : source) {
-            Offer copy = new Offer(offer.name, offer.travelTime);
+            Offer copy = new Offer(offer.name, offer.travelTime, offer.distanceMeters);
             List<Dish> visible = new ArrayList<>();
             boolean[] hidden = new boolean[offer.dishes.size()];
             for (int i = 0; i < offer.dishes.size(); i++) {
@@ -358,7 +595,7 @@ public class OffersActivity extends AppCompatActivity {
     private List<Offer> matchingOffers(List<Offer> source, DesireSelection desire, List<BudgetCategory> catalog) {
         List<Offer> matching = new ArrayList<>();
         for (Offer offer : source) {
-            Offer copy = new Offer(offer.name, offer.travelTime);
+            Offer copy = new Offer(offer.name, offer.travelTime, offer.distanceMeters);
             for (Dish dish : offer.dishes) {
                 BudgetCategory segment = DishStyle.segment(dish.price, catalog);
                 if (fitsHunger(dish, desire.hungerLevel) && DishStyle.inFrames(segment, desire.frames)) {
@@ -383,6 +620,7 @@ public class OffersActivity extends AppCompatActivity {
         private static final int INITIAL = 8;
         private static final int PREFETCH = 8;
         private static final int SKELETONS = 2;
+        private static final int WAITING_BUBBLES = 5;
 
         private List<Offer> offers = new ArrayList<>();
         private final List<BudgetCategory> categories;
@@ -390,6 +628,7 @@ public class OffersActivity extends AppCompatActivity {
         private final Typeface regular;
         private int loaded;
         private boolean skeletonsShown;
+        private boolean waiting;
 
         private OffersAdapter(
                 List<BudgetCategory> categories,
@@ -401,14 +640,23 @@ public class OffersActivity extends AppCompatActivity {
             this.regular = regular;
         }
 
+        private boolean isWaiting() {
+            return waiting;
+        }
+
+        private void waitForAnswer() {
+            waiting = true;
+            offers = new ArrayList<>();
+            loaded = 0;
+            skeletonsShown = false;
+            notifyDataSetChanged();
+        }
+
         private void show(List<Offer> next) {
+            waiting = false;
             offers = next;
             skeletonsShown = false;
-            if (offers.isEmpty()) {
-                loaded = 0;
-            } else if (loaded < INITIAL) {
-                loaded = INITIAL;
-            }
+            loaded = offers.size();
             notifyDataSetChanged();
         }
 
@@ -421,19 +669,20 @@ public class OffersActivity extends AppCompatActivity {
         }
 
         private void ensureAhead(int lastVisible) {
-            if (offers.isEmpty() || skeletonsShown || lastVisible < 0) {
+            if (offers.isEmpty() || skeletonsShown || lastVisible < 0 || loaded >= offers.size()) {
                 return;
             }
             if (loaded - lastVisible > 5) {
                 return;
             }
             int insertAt = loaded;
-            loaded += PREFETCH;
-            notifyItemRangeInserted(insertAt, PREFETCH);
+            int add = Math.min(PREFETCH, offers.size() - loaded);
+            loaded += add;
+            notifyItemRangeInserted(insertAt, add);
         }
 
         private boolean showUnloaded() {
-            if (offers.isEmpty() || skeletonsShown) {
+            if (offers.isEmpty() || skeletonsShown || loaded >= offers.size()) {
                 return false;
             }
             skeletonsShown = true;
@@ -454,6 +703,9 @@ public class OffersActivity extends AppCompatActivity {
 
         @Override
         public int getItemViewType(int position) {
+            if (waiting) {
+                return TYPE_SKELETON;
+            }
             return position < loaded ? TYPE_OFFER : TYPE_SKELETON;
         }
 
@@ -476,12 +728,23 @@ public class OffersActivity extends AppCompatActivity {
                 return;
             }
             Holder offerHolder = (Holder) holder;
-            Offer offer = offers.get(position % offers.size());
+            if (position >= offers.size()) {
+                return;
+            }
+            Offer offer = offers.get(position);
             offerHolder.name.setText(offer.name);
             offerHolder.name.setTypeface(bold);
-            offerHolder.name.setOnClickListener(v -> RestaurantActivity.open(v.getContext(), offer.name));
+            String travel = offer.travelTime == null || offer.travelTime.isEmpty()
+                    ? "0 min"
+                    : offer.travelTime;
+            offerHolder.name.setOnClickListener(v -> RestaurantActivity.open(
+                    v.getContext(),
+                    offer.name,
+                    travel,
+                    offer.distanceMeters
+            ));
             offerHolder.pin.setOnClickListener(v -> openRestaurantMap(v.getContext(), offer.name));
-            offerHolder.time.setText(offer.travelTime);
+            offerHolder.time.setText(travel);
             offerHolder.time.setTypeface(bold);
             Map<Object, Integer> previous = DishMotion.capture(offerHolder.dishes);
             offerHolder.dishes.removeAllViews();
@@ -497,10 +760,13 @@ public class OffersActivity extends AppCompatActivity {
 
         @Override
         public int getItemCount() {
+            if (waiting) {
+                return WAITING_BUBBLES;
+            }
             if (offers.isEmpty()) {
                 return 0;
             }
-            return loaded + (skeletonsShown ? SKELETONS : 0);
+            return offers.size();
         }
 
         private static final class Holder extends RecyclerView.ViewHolder {

@@ -15,7 +15,8 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_mouth_nyamouth_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.NyamaNyama">
+        android:theme="@style/Theme.NyamaNyama"
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
